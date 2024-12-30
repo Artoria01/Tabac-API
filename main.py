@@ -87,8 +87,18 @@ def create_vehicle_embed():
 async def update_list_message():
     global list_message
     if list_message:
-        embed = create_vehicle_embed()
-        await list_message.edit(embed=embed)
+        try:
+            # Tente de rééditer l'embed existant si le message est toujours présent
+            embed = create_vehicle_embed()
+            await list_message.edit(embed=embed)
+        except discord.NotFound:
+            # Si le message a été supprimé (embed expiré), on le recrée
+            print("Le message de la liste des véhicules a expiré ou a été supprimé, création d'un nouveau.")
+            list_message = await list_message.channel.send(embed=create_vehicle_embed())
+    else:
+        # Si list_message est None (pas encore de message), créer un message
+        print("Le message de la liste des véhicules n'a pas encore été envoyé, création d'un nouveau.")
+        list_message = await list_message.channel.send(embed=create_vehicle_embed())
 
     # Mettre à jour l'activité du bot
     await update_bot_activity()
