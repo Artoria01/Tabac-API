@@ -71,7 +71,7 @@ async def update_list_message():
     else:
         print("Le message de la liste des véhicules n'a pas encore été envoyé, création d'un nouveau.")
         # Trouver un canal pour envoyer le message (remplacer par ton ID de canal)
-        channel = bot.get_channel(TON_CANAL_ID)  # Remplace TON_CANAL_ID par l'ID de ton canal
+        channel = bot.get_channel(1322671748537258014)  # Remplace TON_CANAL_ID par l'ID de ton canal
         if channel:
             list_message = await channel.send(embed=create_vehicle_embed())
 
