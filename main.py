@@ -13,7 +13,7 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Connexion à MongoDB (remplace par l'URL de connexion Railway)
-mongo_uri = "mongodb://mongo:YKHHpuFzhLKaQsXBXXEFQcjKJqKyEzyA@mongodb.railway.internal:27017/test"
+mongo_uri = "mongodb://mongo:YKHHpuFzhLKaQsXBXXEFQcjKJqKyEzyA@junction.proxy.rlwy.net:56322/test"
 client = MongoClient(mongo_uri)
 db = client['test']
 vehicles_collection = db['vehicles']
