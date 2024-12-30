@@ -6,6 +6,8 @@ from threading import Thread
 from pymongo import MongoClient
 import os
 
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
+
 # Récupère l'URL de connexion depuis la variable d'environnement
 mongo_url = os.getenv('MONGO_URL')
 
