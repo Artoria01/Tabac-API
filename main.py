@@ -6,7 +6,14 @@ from threading import Thread
 from pymongo import MongoClient
 import os
 
-bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
+# Crée un objet intents avec les intentions par défaut
+intents = discord.Intents.default()
+
+# Active l'intention pour le contenu des messages
+intents.message_content = True
+
+# Crée le bot avec ces intentions
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Récupère l'URL de connexion depuis la variable d'environnement
 mongo_url = os.getenv('MONGO_URL')
