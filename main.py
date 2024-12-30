@@ -6,18 +6,16 @@ from threading import Thread
 from pymongo import MongoClient
 import os
 
-# Création du bot
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+# Récupère l'URL de connexion depuis la variable d'environnement
+mongo_url = os.getenv('MONGO_URL')
 
-# Connexion à MongoDB (remplace par l'URL de connexion Railway)
-mongo_uri = "mongodb://mongo:YKHHpuFzhLKaQsXBXXEFQcjKJqKyEzyA@junction.proxy.rlwy.net:56322/BotAPI"
-client = MongoClient(mongo_uri)
-db = client['test']
-vehicles_collection = db['vehicles']
+# Crée la connexion MongoDB
+client = MongoClient(mongo_url)
+
+# Accède à la base de données
+db = client['BotAPI']
 admins_collection = db['admins']
+vehicles_collection = db['vehicles']
 
 # Variable globale pour le message de la liste des véhicules
 list_message = None
