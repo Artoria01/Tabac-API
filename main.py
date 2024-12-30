@@ -59,21 +59,22 @@ def create_vehicle_embed():
 # Fonction pour mettre à jour l'embed de la liste des véhicules
 async def update_list_message():
     global list_message
+    # Si list_message existe déjà, tenter de le rééditer, sinon le créer
     if list_message:
         try:
-            # Tente de rééditer l'embed existant si le message est toujours présent
             embed = create_vehicle_embed()
             await list_message.edit(embed=embed)
         except discord.NotFound:
-            # Si le message a été supprimé (embed expiré), on le recrée
             print("Le message de la liste des véhicules a expiré ou a été supprimé, création d'un nouveau.")
+            # Recréer un message si l'ancien a été supprimé
             list_message = await list_message.channel.send(embed=create_vehicle_embed())
     else:
-        # Si list_message est None (pas encore de message), créer un message
         print("Le message de la liste des véhicules n'a pas encore été envoyé, création d'un nouveau.")
-        list_message = await list_message.channel.send(embed=create_vehicle_embed())
+        # Trouver un canal pour envoyer le message (remplacer par ton ID de canal)
+        channel = bot.get_channel(TON_CANAL_ID)  # Remplace TON_CANAL_ID par l'ID de ton canal
+        if channel:
+            list_message = await channel.send(embed=create_vehicle_embed())
 
-    # Mettre à jour l'activité du bot
     await update_bot_activity()
 
 # Fonction pour mettre à jour l'activité du bot
@@ -132,23 +133,19 @@ async def list_vehicles(ctx):
     global list_message
     embed = create_vehicle_embed()
     message = await ctx.send(embed=embed)
-    # Sauvegarder le message pour les mises à jour futures
     list_message = message
-    # Ajouter un menu déroulant pour choisir un véhicule
     select = Select(
         placeholder="Choisissez un véhicule",
-        options=[discord.SelectOption(label=f"Plaque: {plaque}", value=plaque) for plaque in vehicles_collection.find()]
+        options=[discord.SelectOption(label=f"Plaque: {vehicle['plaque']}", value=vehicle['plaque']) for vehicle in vehicles_collection.find()]
     )
 
     async def select_callback(interaction):
         selected_plaque = select.values[0]
         vehicle = vehicles_collection.find_one({"plaque": selected_plaque})
-        # Vérifier si l'utilisateur est admin ou propriétaire du véhicule
         if not (is_admin(interaction.user.id) or is_owner(interaction.user.id, selected_plaque)):
             await interaction.response.send_message("❌ Vous n'avez pas la permission de modifier l'état de ce véhicule.", ephemeral=True)
             return
 
-        # Créer un menu déroulant pour choisir l'état
         state_select = Select(
             placeholder="Sélectionnez l'état du véhicule",
             options=[
@@ -164,13 +161,13 @@ async def list_vehicles(ctx):
             await interaction.response.send_message(f"✅ L'état du véhicule `{selected_plaque}` a été modifié en `{new_state}`.", ephemeral=True)
 
         state_select.callback = state_select_callback
-        view = View(timeout=None)  # Le menu ne va jamais expirer
+        view = View(timeout=None)
         view.add_item(state_select)
 
         await interaction.response.send_message("Sélectionnez un nouvel état pour ce véhicule.", view=view, ephemeral=True)
 
     select.callback = select_callback
-    view = View(timeout=None)  # Le menu ne va jamais expirer
+    view = View(timeout=None)
     view.add_item(select)
 
     await message.edit(view=view)
