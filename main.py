@@ -20,6 +20,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Récupère l'URL de connexion depuis la variable d'environnement
 mongo_url = os.getenv('MONGO_URL')
 
+# Crée la connexion MongoDB
+client = MongoClient(mongo_url)
+
 # Accède à la base de données
 db = client['BotAPI']
 admins_collection = db['admins']
