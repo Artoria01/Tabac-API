@@ -57,56 +57,49 @@ def format_date(date_str):
     return "Inconnu"
 
 # Fonction pour créer l'embed de la liste des véhicules
-def create_vehicle_embed():
-    embed = discord.Embed(title="Liste des véhicules", color=discord.Color.blue())
-    vehicles = vehicles_collection.find()
-    if not vehicles:
-        embed.add_field(name="Aucun véhicule", value="`Il n'y a aucun véhicule enregistré.`")
-    else:
-        for vehicle in vehicles:
-            emoji = "🔴" if vehicle["state"] == "garage" else "🔵"
-            owner = vehicle['owner']
-            details = [f"Propriétaire : `{owner}`", f"État : `{vehicle['state']}`"]
+def create_vehicle_embeds():
+    vehicles = list(vehicles_collection.find())  # Convertir en liste pour itérer
+    embeds = []
+    current_embed = discord.Embed(title="Liste des véhicules", color=discord.Color.blue())
 
-            if vehicle.get('personnel') == 'oui':
-                last_changed = vehicle.get('last_changed_date')
-                if last_changed:
-                    details.append(f"Dernier changement le : `{format_date(last_changed)}`")
+    # Ajouter des véhicules aux embeds
+    for i, vehicle in enumerate(vehicles):
+        emoji = "🔴" if vehicle["state"] == "garage" else "🔵"
+        owner = vehicle['owner']
+        details = [f"Propriétaire : `{owner}`", f"État : `{vehicle['state']}`"]
+
+        if vehicle.get('personnel') == 'oui':
+            last_changed = vehicle.get('last_changed_date')
+            if last_changed:
+                details.append(f"Dernier changement le : `{format_date(last_changed)}`")
+        else:
+            details.append(f"🅿︎** ┄┄ Véhicule Public ┄┄ **🅿︎")
+            last_changed_by = vehicle.get('last_changed_by', "`Inconnu`")
+            details.append(f"Dernier changement par : `{last_changed_by}`")
+            last_changed = vehicle.get('last_changed_date')
+            if last_changed:
+                details.append(f"Dernier changement le : `{format_date(last_changed)}`")
             else:
-                details.append(f"🅿︎** ┄┄ Véhicule Public ┄┄ **🅿︎")
-                last_changed_by = vehicle.get('last_changed_by', "`Inconnu`")
-                details.append(f"Dernier changement par : `{last_changed_by}`")
-                last_changed = vehicle.get('last_changed_date')
-                if last_changed:
-                    details.append(f"Dernier changement le : `{format_date(last_changed)}`")
-                else:
-                    details.append("Dernier changement le : `Non défini`")
+                details.append("Dernier changement le : `Non défini`")
 
-            # Ajouter les champs à l'embed
-            embed.add_field(name=f"{emoji} Plaque : `{vehicle['plaque']}`", value="\n".join(details), inline=False)
-            embed.add_field(name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", value="", inline=False)
-    return embed
+        # Ajouter le champ à l'embed actuel
+        current_embed.add_field(name=f"{emoji} Plaque : `{vehicle['plaque']}`", value="\n".join(details), inline=False)
+
+        # Si on atteint la limite de 25 champs, créer un nouvel embed
+        if len(current_embed.fields) == 25:
+            embeds.append(current_embed)
+            current_embed = discord.Embed(title="Liste des véhicules (suite)", color=discord.Color.blue())
+
+    # Ajouter l'embed restant s'il y a des champs
+    if current_embed.fields:
+        embeds.append(current_embed)
+
+    return embeds
 
 # Fonction pour mettre à jour l'embed de la liste des véhicules
 async def update_list_message():
     global list_message
-    # Si list_message existe déjà, tenter de le rééditer, sinon le créer
-    if list_message:
-        try:
-            embed = create_vehicle_embed()
-            await list_message.edit(embed=embed)
-        except discord.NotFound:
-            print("Le message de la liste des véhicules a expiré ou a été supprimé, création d'un nouveau.")
-            # Recréer un message si l'ancien a été supprimé
-            list_message = await list_message.channel.send(embed=create_vehicle_embed())
-    else:
-        print("Le message de la liste des véhicules n'a pas encore été envoyé, création d'un nouveau.")
-        # Trouver un canal pour envoyer le message (remplacer par ton ID de canal)
-        channel = bot.get_channel(1322671748537258014)  # Remplace TON_CANAL_ID par l'ID de ton canal
-        if channel:
-            list_message = await channel.send(embed=create_vehicle_embed())
-
-    # Mettre à jour les options du menu déroulant
+    # Créer le menu déroulant une seule fois pour tous les véhicules
     select = Select(
         placeholder="Choisissez un véhicule",
         options=[discord.SelectOption(label=f"Plaque: {vehicle['plaque']}", value=vehicle['plaque']) for vehicle in vehicles_collection.find()]
@@ -145,9 +138,25 @@ async def update_list_message():
     view = View(timeout=None)
     view.add_item(select)
 
-    # Mettre à jour le message avec le menu de sélection du véhicule
-    await list_message.edit(view=view)
+    # Créer les embeds et envoyer chaque page
+    embeds = create_vehicle_embeds()
+    
+    # Si list_message existe déjà, tenter de l'éditer, sinon en créer un nouveau
+    if list_message:
+        try:
+            for embed in embeds:
+                await list_message.edit(embed=embed, view=view)
+        except discord.NotFound:
+            print("Le message de la liste des véhicules a expiré ou a été supprimé.")
+            # Recréer un message
+            list_message = await list_message.channel.send(embed=embeds[0], view=view)
+    else:
+        # Envoyer les embeds pour la première fois
+        channel = bot.get_channel(1322671748537258014)  # Remplacer par l'ID de ton canal
+        if channel:
+            list_message = await channel.send(embed=embeds[0], view=view)
 
+    # Mettre à jour l'activité du bot
     await update_bot_activity()
 
 # Fonction pour mettre à jour l'activité du bot
@@ -252,10 +261,11 @@ async def state_select_callback(interaction):
 # Commande pour voir la liste des véhicules
 @bot.command()
 async def list_vehicles(ctx):
-    global list_message
-    embed = create_vehicle_embed()
-    message = await ctx.send(embed=embed)
-    list_message = message
+    embeds = create_vehicle_embeds()
+    
+    # Envoyer chaque embed dans un message séparé
+    for embed in embeds:
+        await ctx.send(embed=embed)
 
     # Création du menu déroulant pour choisir un véhicule
     select = Select(
