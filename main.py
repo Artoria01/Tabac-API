@@ -260,12 +260,15 @@ async def state_select_callback(interaction):
 
 # Commande pour voir la liste des véhicules
 @bot.command()
+@bot.command()
 async def list_vehicles(ctx):
     embeds = create_vehicle_embeds()
     
     # Envoyer chaque embed dans un message séparé
+    sent_messages = []  # Stocker les messages envoyés
     for embed in embeds:
-        await ctx.send(embed=embed)
+        message = await ctx.send(embed=embed)
+        sent_messages.append(message)
 
     # Création du menu déroulant pour choisir un véhicule
     select = Select(
@@ -306,8 +309,9 @@ async def list_vehicles(ctx):
     view = View(timeout=None)
     view.add_item(select)
 
-    # Mettre à jour le message avec le menu de sélection du véhicule
-    await message.edit(view=view)
+    # Mettre à jour le dernier message envoyé avec le menu de sélection du véhicule
+    if sent_messages:
+        await sent_messages[-1].edit(view=view)
 
 # Synchroniser les commandes Slash à chaque démarrage
 @bot.event
