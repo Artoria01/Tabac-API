@@ -9,6 +9,11 @@ import os
 import asyncio
 import pytz
 
+# Fonction pour obtenir l'heure actuelle en heure française
+def get_french_time():
+    paris_tz = pytz.timezone('Europe/Paris')
+    return datetime.now(paris_tz).strftime("`%d/%m a %H:%M`")
+
 # Crée un objet intents avec les intentions par défaut
 intents = discord.Intents.default()
 
