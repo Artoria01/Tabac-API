@@ -29,6 +29,11 @@ db = client['BotAPI']
 admins_collection = db['admins']
 vehicles_collection = db['vehicles']
 
+# Fonction pour calculer le nombre total de pages
+def calculate_total_pages():
+    total_vehicles = vehicles_collection.count_documents({})
+    return max(1, (total_vehicles + 9) // 10)  # 10 véhicules par page
+
 # Variable globale pour le message de la liste des véhicules
 list_message = None
 current_page = 1
